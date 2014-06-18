@@ -10,4 +10,6 @@
 
 @interface Seal : CCSprite
 
+-(void)didLoadFromCCB;
+
 @end
