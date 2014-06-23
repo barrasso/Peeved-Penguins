@@ -9,7 +9,9 @@
 #import "Gameplay.h"
 #import "Penguin.h"
 
-static const float MIN_SPEED = 6.f;
+static const float MIN_SPEED = 5.f;
+// Start at level 1
+int nextLevel = 1;
 
 @implementation Gameplay
 {
@@ -26,16 +28,23 @@ static const float MIN_SPEED = 6.f;
     CCPhysicsJoint *_pullbackJoint;
     CCPhysicsJoint *_mouseJoint;
     CCAction *_followPenguin;
+    int deadSeals;
 }
 
 // is called when CCB file has completed loading
 - (void)didLoadFromCCB
 {
+    // initialize number of dead seals
+    deadSeals = 0;
+    
+    // Create string in order to load current/next levels
+    NSString *levelString = [NSString stringWithFormat:@"Levels/Level%i",nextLevel];
+    
     // tell this scene to accept touches
     self.userInteractionEnabled = TRUE;
     
-    //Load the first level
-    CCScene *level = [CCBReader loadAsScene:@"Levels/Level1"];
+    //Load the level
+    CCScene *level = [CCBReader loadAsScene:levelString];
     [_levelNode addChild: level];
     
     // visualize physics bodies & joints for DEBUGGING PHYSICS
@@ -120,6 +129,7 @@ static const float MIN_SPEED = 6.f;
 - (void)retry
 {
     // reload this level
+    deadSeals = 0;
     [[CCDirector sharedDirector] replaceScene: [CCBReader loadAsScene:@"Gameplay"]];
 }
 
@@ -192,10 +202,28 @@ static const float MIN_SPEED = 6.f;
     
     // finally, remove the destroyed seal
     [seal removeFromParent];
+    
+    deadSeals++;
 }
 
 - (void)update:(CCTime)delta
 {
+    // If all seals are dead
+    if (deadSeals == 5) {
+        
+        // Increment nextLevel
+        nextLevel++;
+        
+        // Remove the current level from the node
+        [_levelNode removeAllChildren];
+        
+        // Replace the scene with Gameplay again
+        [[CCDirector sharedDirector] replaceScene: [CCBReader loadAsScene:@"Gameplay"]];
+        
+        // Reset deadSeals to 0
+        deadSeals = 0;
+    }
+    
     if(_currentPenguin.launched)
     {
         // if speed is below minimum speed, assume this attempt is over
@@ -225,9 +253,12 @@ static const float MIN_SPEED = 6.f;
 
 - (void)nextAttempt
 {
+    // Set the current penguing to nil
     _currentPenguin = nil;
+    // Stop following the penguin
     [_contentNode stopAction:_followPenguin];
     
+    // Move back to the beginning of the Gameplay
     CCActionMoveTo *actionMoveTo = [CCActionMoveTo actionWithDuration:1.f position:ccp(0, 0)];
     [_contentNode runAction:actionMoveTo];
 }
